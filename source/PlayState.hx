@@ -1,23 +1,13 @@
 package;
 
 import flixel.FlxG;
-import flixel.FlxObject;
 import flixel.FlxState;
-import flixel.addons.display.shapes.FlxShapeBox;
-import flixel.addons.display.shapes.FlxShapeCircle;
-import flixel.addons.ui.FlxButtonPlus;
 import flixel.group.FlxGroup;
 import flixel.math.FlxPoint;
-import flixel.text.FlxText.FlxTextAlign;
 import flixel.text.FlxText;
-import flixel.tweens.FlxTween;
 import flixel.ui.FlxButton;
-import flixel.util.FlxCollision;
 import flixel.util.FlxColor;
-import flixel.util.FlxSpriteUtil.LineStyle;
 import haxe.Log;
-import lime.text.Font;
-import openfl.display.SpreadMethod;
 
 class PlayState extends FlxState
 {
@@ -32,13 +22,12 @@ class PlayState extends FlxState
 		turnText = new FlxText(0, FlxG.height / 5, 0, "Player 1's Turn!", 12);
 		turnText.screenCenter(X);
 
-		var buttonSize = 50;
-		var gridSize = 3;
-		var spacing = 10;
+		var resetGame = new FlxButton(0, 0, "New Game", newGame);
+		resetGame.screenCenter(X);
+		resetGame.y = FlxG.height - 100;
+		newGame();
 
-		gameBoard = new GameBoard(gridSize, buttonSize, spacing);
-
-		add(gameBoard.buttonGroup);
+		add(resetGame);
 		add(turnText);
 	}
 
@@ -46,10 +35,26 @@ class PlayState extends FlxState
 	{
 		super.update(elapsed);
 
+		if (gameBoard.gameWon)
+		{
+			turnText.text = (gameBoard.turn == "X" ? "Player 1" : "Player 2") + " Wins!";
+			return;
+		}
+
 		if (gameBoard.turn == "X")
 			turnText.text = "Player 1's Turn!";
 		else
 			turnText.text = "Player 2's Turn!";
+	}
+
+	function newGame()
+	{
+		var buttonSize = 50;
+		var gridSize = 3;
+		var spacing = 10;
+
+		gameBoard = new GameBoard(gridSize, buttonSize, spacing);
+		add(gameBoard.buttonGroup);
 	}
 }
 
@@ -59,6 +64,8 @@ class GameBoard
 	public var turn:String = "X";
 
 	var gridSize:Int;
+
+	public var gameWon:Bool = false;
 
 	public function new(gridSize:Int, buttonSize:Int, spacing:Int)
 	{
@@ -72,7 +79,7 @@ class GameBoard
 			}
 	}
 
-	public function createButton(?x:Float = 0, ?y:Float = 0, ?width:Int = 25, ?height:Int = 25, ?text:String = ""):FlxButton
+	function createButton(?x:Float = 0, ?y:Float = 0, ?width:Int = 25, ?height:Int = 25, ?text:String = ""):FlxButton
 	{
 		var button = new FlxButton(x, y, text);
 		button.makeGraphic(width, height, FlxColor.GRAY, true);
@@ -88,14 +95,21 @@ class GameBoard
 
 	function onClick(b:FlxButton)
 	{
+		// dont move if game is over or invalid move
+		if (gameWon || b.text != "")
+			return;
+
+		// make move
 		b.text = turn;
-		Log.trace(checkWinState());
 
 		if (checkWinState())
 		{
+			gameWon = true;
 			PlayState.turnText.text = turn == "X" ? "Player 1 Wins!" : "Player 2 Wins!";
+			return;
 		}
 
+		// swap turn
 		turn = turn == "X" ? "O" : "X";
 	}
 
@@ -131,3 +145,13 @@ class GameBoard
 		return false;
 	}
 }
+/**
+ * Pretty much done, if I need to add more consider the following:
+ *  - Stale game indicator
+ *  - AI opponent
+ *  - Auto Mode
+ *  - Screen effects
+ *  - Line showing the winning combo
+ *  - Styling/Polish
+ *  - scoreboard for player 1/2 (or CPU)
+ */
